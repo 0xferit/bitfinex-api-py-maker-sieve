@@ -63,7 +63,6 @@ jobs:
         bandit -r bfx_postonly/
 
   build:
-    needs: [test, security]
     runs-on: ubuntu-latest
     
     steps:

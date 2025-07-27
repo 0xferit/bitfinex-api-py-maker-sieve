@@ -1,35 +1,24 @@
 """
-POST-ONLY validation wrapper for Bitfinex API.
-Validates orders but never modifies them.
+Sieve for Bitfinex API.
+Sieves orders that are not LIMIT and POST_ONLY for safe market-making.
 """
 
-import logging
+from collections.abc import Callable
 from typing import Any
 
 from bfxapi import Client as BfxClient
 
-logger = logging.getLogger(__name__)
-
 
 class PostOnlyError(Exception):
-    """Raised when an order violates POST_ONLY requirements."""
-
-    pass
-
-
-def is_limit_order(order_type: str) -> bool:
-    """Check if order type contains 'LIMIT'"""
-    if not order_type:
-        return False
-    return "LIMIT" in order_type.upper()
+    """Raised when an order violates POST_ONLY requirements or wrapper initialization fails."""
 
 
 def validate_post_only(**kwargs: Any) -> None:
-    """Only permit limit orders with POST_ONLY flag"""
-    order_type = kwargs.get("type", "")
+    """Only permit limit orders with POST_ONLY flag."""
+    order_type = kwargs.get("type", "").upper()
 
     # Must be a limit order (contain "LIMIT")
-    if not is_limit_order(order_type):
+    if "LIMIT" not in order_type:
         raise PostOnlyError(f"Only limit orders permitted, got: {order_type}")
 
     # Must have POST_ONLY flag
@@ -39,89 +28,66 @@ def validate_post_only(**kwargs: Any) -> None:
         raise PostOnlyError(f"POST_ONLY flag ({post_only_flag}) required")
 
 
+def wrap_with_validation(original: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator to add POST_ONLY validation before calling the original method."""
+
+    def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
+        validate_post_only(**kwargs)
+        return original(*args, **kwargs)
+
+    async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
+        validate_post_only(**kwargs)
+        return await original(*args, **kwargs)
+
+    # Return async or sync based on the original (assuming library methods are correctly typed)
+    if hasattr(original, "__await__"):
+        return async_wrapper
+    return sync_wrapper
+
+
 class PostOnlyClient:
     """
     Bitfinex client that enforces POST_ONLY on all orders.
     Validates orders but never modifies them.
+    Assumes underlying bfxapi library provides REST and WebSocket submit_order methods.
     """
 
-    def __init__(
-        self, api_key: str | None = None, api_secret: str | None = None, **kwargs: Any
-    ):
-        """Initialize with POST_ONLY validation wrapper"""
+    def __init__(self, api_key: str | None = None, api_secret: str | None = None, **kwargs: Any):
+        """Initialize with POST_ONLY validation wrapper."""
         self._client = BfxClient(api_key=api_key, api_secret=api_secret, **kwargs)
 
-        # Safely wrap REST submit_order with validation
-        try:
-            if not hasattr(self._client.rest, "auth") or not hasattr(
-                self._client.rest.auth, "submit_order"
-            ):
-                raise AttributeError("REST submit_order method not found")
+        # Wrap REST submit_order with validation
+        if not (hasattr(self._client.rest, "auth") and hasattr(self._client.rest.auth, "submit_order")):
+            raise PostOnlyError("REST submit_order method not found in bfxapi.rest.auth")
 
-            original_submit = self._client.rest.auth.submit_order
+        self._client.rest.auth.submit_order = wrap_with_validation(self._client.rest.auth.submit_order)
 
-            def rest_submit(*args: Any, **kwargs: Any) -> Any:
-                validate_post_only(**kwargs)
-                return original_submit(*args, **kwargs)
+        # Wrap WebSocket submit_order with validation (mandatory)
+        if not (
+            hasattr(self._client, "wss")
+            and hasattr(self._client.wss, "inputs")
+            and hasattr(self._client.wss.inputs, "submit_order")
+        ):
+            raise PostOnlyError("WebSocket submit_order method not found in bfxapi.wss.inputs")
 
-            # Use setattr to avoid mypy method assignment error
-            setattr(self._client.rest.auth, "submit_order", rest_submit)
-            logger.info("Successfully wrapped REST submit_order method")
-
-        except Exception as e:
-            logger.error(f"Failed to wrap REST submit_order: {e}")
-            raise PostOnlyError(f"Failed to initialize REST wrapper: {e}") from e
-
-        # Safely wrap WebSocket submit_order with validation if available
-        self._wss_available = False
-        try:
-            if (
-                hasattr(self._client, "wss")
-                and hasattr(self._client.wss, "inputs")
-                and hasattr(self._client.wss.inputs, "submit_order")
-            ):
-                original_wss_submit = self._client.wss.inputs.submit_order
-
-                async def wss_submit(*args: Any, **kwargs: Any) -> Any:
-                    validate_post_only(**kwargs)
-                    return await original_wss_submit(*args, **kwargs)
-
-                # Use setattr to avoid mypy method assignment error
-                setattr(self._client.wss.inputs, "submit_order", wss_submit)
-                self._wss_available = True
-                logger.info("Successfully wrapped WebSocket submit_order method")
-            else:
-                logger.warning("WebSocket submit_order method not available")
-
-        except Exception as e:
-            logger.warning(f"Failed to wrap WebSocket submit_order: {e}")
-            # Don't raise error for WebSocket - it's optional
+        self._client.wss.inputs.submit_order = wrap_with_validation(self._client.wss.inputs.submit_order)
 
     @property
     def rest(self) -> Any:
-        """Access wrapped REST client"""
+        """Access wrapped REST client."""
         return self._client.rest
 
     @property
     def wss(self) -> Any:
-        """Access wrapped WebSocket client"""
+        """Access wrapped WebSocket client."""
         return self._client.wss
 
-    def submit_limit_order(
-        self, symbol: str, amount: float, price: float, **kwargs: Any
-    ) -> Any:
-        """Submit limit order. Validates POST_ONLY flag is present"""
-        return self.rest.auth.submit_order(
-            type="EXCHANGE LIMIT", symbol=symbol, amount=amount, price=price, **kwargs
-        )
+    def submit_limit_order(self, symbol: str, amount: float, price: float, **kwargs: Any) -> Any:
+        """Submit limit order via REST. Validates POST_ONLY flag is present."""
+        return self.rest.auth.submit_order(type="EXCHANGE LIMIT", symbol=symbol, amount=amount, price=price, **kwargs)
 
-    async def submit_limit_order_async(
-        self, symbol: str, amount: float, price: float, **kwargs: Any
-    ) -> Any:
-        """Submit limit order via WebSocket. Validates POST_ONLY flag is present"""
-        if not self._wss_available:
-            raise AttributeError("WebSocket submit_order not available")
-
+    async def submit_limit_order_async(self, symbol: str, amount: float, price: float, **kwargs: Any) -> Any:
+        """Submit limit order via WebSocket. Validates POST_ONLY flag is present."""
         return await self.wss.inputs.submit_order(
             type="EXCHANGE LIMIT", symbol=symbol, amount=amount, price=price, **kwargs
         )
