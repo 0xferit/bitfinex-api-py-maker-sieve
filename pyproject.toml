@@ -31,6 +31,7 @@ dependencies = [
 dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
     "black>=23.0.0",
     "isort>=5.0.0",
     "flake8>=5.0.0",
@@ -82,6 +83,10 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
+
+[[tool.mypy.overrides]]
+module = "bfxapi.*"
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 python_files = ["test_*.py"]
