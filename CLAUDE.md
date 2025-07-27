@@ -23,3 +23,4 @@
 - Run tests locally before committing: `pytest tests/`
 - Unified linting with ruff (replaces black, isort, flake8)
 - Type checking with mypy 1.17.0+
+- Pre-commit hooks automatically run ruff and mypy checks
