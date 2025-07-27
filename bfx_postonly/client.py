@@ -61,7 +61,7 @@ class PostOnlyClient:
                 validate_post_only(**params)
                 return original_submit(**params)
 
-            self._client.rest.auth.submit_order = rest_submit
+            self._client.rest.auth.submit_order = rest_submit  # type: ignore[method-assign]
             logger.info("Successfully wrapped REST submit_order method")
 
         except Exception as e:
@@ -83,7 +83,7 @@ class PostOnlyClient:
                     validate_post_only(**params)
                     return await original_wss_submit(**params)
 
-                self._client.wss.inputs.submit_order = wss_submit
+                self._client.wss.inputs.submit_order = wss_submit  # type: ignore[method-assign]
                 self._wss_available = True
                 logger.info("Successfully wrapped WebSocket submit_order method")
             else:
