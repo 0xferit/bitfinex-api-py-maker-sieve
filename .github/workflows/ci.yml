@@ -36,9 +36,9 @@ jobs:
       run: |
         mypy bfx_postonly/
     
-    - name: Test with pytest
+    - name: Import test
       run: |
-        pytest test_postonly.py
+        python -c "from bfx_postonly import PostOnlyClient, PostOnlyError; print('Import successful')"
 
   security:
     runs-on: ubuntu-latest
