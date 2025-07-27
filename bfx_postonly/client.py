@@ -17,19 +17,23 @@ class PostOnlyError(Exception):
     pass
 
 
+def is_limit_order(order_type: str) -> bool:
+    """Check if order type contains 'LIMIT'"""
+    if not order_type:
+        return False
+    return "LIMIT" in order_type.upper()
+
+
 def validate_post_only(**kwargs: Any) -> None:
-    """Validate order has POST_ONLY flag (4096) and is EXCHANGE LIMIT type"""
-    order_type = kwargs.get("type")
-    if not isinstance(order_type, str):
-        raise PostOnlyError("Order type must be a string")
+    """Only permit limit orders with POST_ONLY flag"""
+    order_type = kwargs.get("type", "")
 
-    if order_type != "EXCHANGE LIMIT":
-        raise PostOnlyError(f"Only EXCHANGE LIMIT orders allowed, got: {order_type}")
+    # Must be a limit order (contain "LIMIT")
+    if not is_limit_order(order_type):
+        raise PostOnlyError(f"Only limit orders permitted, got: {order_type}")
 
+    # Must have POST_ONLY flag
     flags = kwargs.get("flags", 0)
-    if not isinstance(flags, int):
-        raise PostOnlyError("Flags must be an integer")
-
     post_only_flag = 4096
     if not (flags & post_only_flag):
         raise PostOnlyError(f"POST_ONLY flag ({post_only_flag}) required")
@@ -107,14 +111,6 @@ class PostOnlyClient:
         self, symbol: str, amount: float, price: float, **kwargs: Any
     ) -> Any:
         """Submit limit order. Validates POST_ONLY flag is present"""
-        # Validate inputs
-        if not isinstance(symbol, str) or not symbol.strip():
-            raise PostOnlyError("Symbol must be a non-empty string")
-        if not isinstance(amount, int | float) or amount == 0:
-            raise PostOnlyError("Amount must be a non-zero number")
-        if not isinstance(price, int | float) or price <= 0:
-            raise PostOnlyError("Price must be a positive number")
-
         return self.rest.auth.submit_order(
             type="EXCHANGE LIMIT", symbol=symbol, amount=amount, price=price, **kwargs
         )
@@ -125,14 +121,6 @@ class PostOnlyClient:
         """Submit limit order via WebSocket. Validates POST_ONLY flag is present"""
         if not self._wss_available:
             raise AttributeError("WebSocket submit_order not available")
-
-        # Validate inputs
-        if not isinstance(symbol, str) or not symbol.strip():
-            raise PostOnlyError("Symbol must be a non-empty string")
-        if not isinstance(amount, int | float) or amount == 0:
-            raise PostOnlyError("Amount must be a non-zero number")
-        if not isinstance(price, int | float) or price <= 0:
-            raise PostOnlyError("Price must be a positive number")
 
         return await self.wss.inputs.submit_order(
             type="EXCHANGE LIMIT", symbol=symbol, amount=amount, price=price, **kwargs

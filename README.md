@@ -54,4 +54,4 @@ except PostOnlyError as e:
 ## Requirements
 
 - Python 3.13+
-- bitfinex-api-py (installed from git repository)
+- https://github.com/0xferit/bitfinex-maker-kit
