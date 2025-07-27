@@ -69,9 +69,11 @@ class PostOnlyClient:
         # Safely wrap WebSocket submit_order with validation if available
         self._wss_available = False
         try:
-            if (hasattr(self._client, 'wss') and
-                hasattr(self._client.wss, 'inputs') and
-                    hasattr(self._client.wss.inputs, 'submit_order')):
+            if (
+                hasattr(self._client, 'wss')
+                and hasattr(self._client.wss, 'inputs')
+                and hasattr(self._client.wss.inputs, 'submit_order')
+            ):
 
                 original_wss_submit = self._client.wss.inputs.submit_order
 
