@@ -1,293 +1,140 @@
 """
-Main client wrapper that enforces POST-ONLY behavior
+POST-ONLY validation wrapper for Bitfinex API.
+Validates orders but never modifies them.
 """
 
 import logging
-from typing import Any, Optional, Dict, Union
-from bfxapi import Client as BfxClient, REST_HOST, WSS_HOST
-from bfxapi.types import Notification, Order
+from typing import Any
 
-from .decorators import PostOnlyMethodWrapper, post_only_enforcer
-from .exceptions import PostOnlyViolationError, ConfigurationError
-from .utils import (
-    validate_order_parameters, 
-    format_order_info, 
-    add_post_only_flag,
-    is_limit_order
-)
+from bfxapi import Client as BfxClient
 
-# Set up logging
 logger = logging.getLogger(__name__)
 
 
-class PostOnlyRESTWrapper:
-    """
-    Wrapper for the REST client that enforces POST_ONLY on all limit orders.
-    """
-    
-    def __init__(self, rest_client: Any):
-        """
-        Initialize the REST wrapper.
-        
-        Args:
-            rest_client: The original REST client instance
-        """
-        self._rest_client = rest_client
-        self._original_submit_order = rest_client.auth.submit_order
-        
-        # Replace the submit_order method with our wrapped version
-        rest_client.auth.submit_order = self._wrapped_submit_order
-    
-    def _wrapped_submit_order(self, **kwargs) -> Notification[Order]:
-        """
-        Wrapped submit_order method that enforces POST_ONLY.
-        
-        Args:
-            **kwargs: Order parameters
-            
-        Returns:
-            Notification containing the order result
-            
-        Raises:
-            PostOnlyViolationError: If order cannot be made POST_ONLY
-        """
-        # Validate parameters
-        validate_order_parameters(kwargs)
-        
-        # Ensure POST_ONLY flag is set for limit orders
-        if is_limit_order(kwargs.get('type', '')):
-            kwargs['flags'] = add_post_only_flag(kwargs.get('flags'))
-            logger.info(f"Submitting POST_ONLY order: {format_order_info(kwargs)}")
-        else:
-            raise PostOnlyViolationError(
-                f"Order type '{kwargs.get('type')}' is not supported. Only limit orders are allowed."
-            )
-        
-        # Call the original method
-        return self._original_submit_order(**kwargs)
-    
-    def __getattr__(self, name: str) -> Any:
-        """
-        Delegate all other attributes to the original REST client.
-        """
-        return getattr(self._rest_client, name)
+class PostOnlyError(Exception):
+    """Raised when an order violates POST_ONLY requirements."""
+
+    pass
 
 
-class PostOnlyWebSocketWrapper:
-    """
-    Wrapper for the WebSocket client that enforces POST_ONLY on all limit orders.
-    """
-    
-    def __init__(self, wss_client: Any):
-        """
-        Initialize the WebSocket wrapper.
-        
-        Args:
-            wss_client: The original WebSocket client instance
-        """
-        self._wss_client = wss_client
-        
-        # Wrap the inputs.submit_order method if it exists
-        if hasattr(wss_client, 'inputs') and hasattr(wss_client.inputs, 'submit_order'):
-            self._original_submit_order = wss_client.inputs.submit_order
-            wss_client.inputs.submit_order = self._wrapped_submit_order
-    
-    async def _wrapped_submit_order(self, **kwargs) -> None:
-        """
-        Wrapped submit_order method that enforces POST_ONLY.
-        
-        Args:
-            **kwargs: Order parameters
-            
-        Raises:
-            PostOnlyViolationError: If order cannot be made POST_ONLY
-        """
-        # Validate parameters
-        validate_order_parameters(kwargs)
-        
-        # Ensure POST_ONLY flag is set for limit orders
-        if is_limit_order(kwargs.get('type', '')):
-            kwargs['flags'] = add_post_only_flag(kwargs.get('flags'))
-            logger.info(f"Submitting POST_ONLY order via WebSocket: {format_order_info(kwargs)}")
-        else:
-            raise PostOnlyViolationError(
-                f"Order type '{kwargs.get('type')}' is not supported. Only limit orders are allowed."
-            )
-        
-        # Call the original method
-        return await self._original_submit_order(**kwargs)
-    
-    def __getattr__(self, name: str) -> Any:
-        """
-        Delegate all other attributes to the original WebSocket client.
-        """
-        return getattr(self._wss_client, name)
+def validate_post_only(**kwargs: Any) -> None:
+    """Validate order has POST_ONLY flag (4096) and is EXCHANGE LIMIT type"""
+    order_type = kwargs.get("type")
+    if not isinstance(order_type, str):
+        raise PostOnlyError("Order type must be a string")
+
+    if order_type != "EXCHANGE LIMIT":
+        raise PostOnlyError(f"Only EXCHANGE LIMIT orders allowed, got: {order_type}")
+
+    flags = kwargs.get("flags", 0)
+    if not isinstance(flags, int):
+        raise PostOnlyError("Flags must be an integer")
+
+    post_only_flag = 4096
+    if not (flags & post_only_flag):
+        raise PostOnlyError(f"POST_ONLY flag ({post_only_flag}) required")
 
 
 class PostOnlyClient:
     """
-    Main client wrapper that enforces POST_ONLY behavior on all limit orders.
-    
-    This class wraps the standard Bitfinex API client and ensures that all limit orders
-    are submitted with the POST_ONLY flag, preventing them from becoming taker orders.
+    Bitfinex client that enforces POST_ONLY on all orders.
+    Validates orders but never modifies them.
     """
-    
-    def __init__(
-        self,
-        api_key: Optional[str] = None,
-        api_secret: Optional[str] = None,
-        rest_host: str = REST_HOST,
-        wss_host: str = WSS_HOST,
-        **kwargs
-    ):
-        """
-        Initialize the POST-ONLY client.
-        
-        Args:
-            api_key: Bitfinex API key
-            api_secret: Bitfinex API secret
-            rest_host: REST API host URL
-            wss_host: WebSocket API host URL
-            **kwargs: Additional arguments passed to the underlying client
-        """
-        self._api_key = api_key
-        self._api_secret = api_secret
-        self._rest_host = rest_host
-        self._wss_host = wss_host
-        
-        # Initialize the underlying Bitfinex client
+
+    def __init__(self, api_key: str = "", api_secret: str = "", **kwargs: Any):
+        """Initialize with POST_ONLY validation wrapper"""
+        self._client = BfxClient(api_key=api_key, api_secret=api_secret, **kwargs)
+
+        # Safely wrap REST submit_order with validation
         try:
-            self._client = BfxClient(
-                api_key=api_key,
-                api_secret=api_secret,
-                rest_host=rest_host,
-                wss_host=wss_host,
-                **kwargs
-            )
+            if not hasattr(self._client.rest, "auth") or not hasattr(
+                self._client.rest.auth, "submit_order"
+            ):
+                raise AttributeError("REST submit_order method not found")
+
+            original_submit = self._client.rest.auth.submit_order
+
+            def rest_submit(*args: Any, **kwargs: Any) -> Any:
+                validate_post_only(**kwargs)
+                return original_submit(*args, **kwargs)
+
+            # Use setattr to avoid mypy method assignment error
+            setattr(self._client.rest.auth, "submit_order", rest_submit)
+            logger.info("Successfully wrapped REST submit_order method")
+
         except Exception as e:
-            raise ConfigurationError(f"Failed to initialize Bitfinex client: {e}")
-        
-        # Wrap the REST and WebSocket clients
-        self._rest_wrapper = PostOnlyRESTWrapper(self._client.rest)
-        self._wss_wrapper = PostOnlyWebSocketWrapper(self._client.wss)
-        
-        logger.info("PostOnlyClient initialized successfully")
-    
+            logger.error(f"Failed to wrap REST submit_order: {e}")
+            raise PostOnlyError(f"Failed to initialize REST wrapper: {e}") from e
+
+        # Safely wrap WebSocket submit_order with validation if available
+        self._wss_available = False
+        try:
+            if (
+                hasattr(self._client, "wss")
+                and hasattr(self._client.wss, "inputs")
+                and hasattr(self._client.wss.inputs, "submit_order")
+            ):
+                original_wss_submit = self._client.wss.inputs.submit_order
+
+                async def wss_submit(*args: Any, **kwargs: Any) -> Any:
+                    validate_post_only(**kwargs)
+                    return await original_wss_submit(*args, **kwargs)
+
+                # Use setattr to avoid mypy method assignment error
+                setattr(self._client.wss.inputs, "submit_order", wss_submit)
+                self._wss_available = True
+                logger.info("Successfully wrapped WebSocket submit_order method")
+            else:
+                logger.warning("WebSocket submit_order method not available")
+
+        except Exception as e:
+            logger.warning(f"Failed to wrap WebSocket submit_order: {e}")
+            # Don't raise error for WebSocket - it's optional
+
     @property
-    def rest(self) -> PostOnlyRESTWrapper:
-        """
-        Get the POST-ONLY wrapped REST client.
-        
-        Returns:
-            Wrapped REST client with POST_ONLY enforcement
-        """
-        return self._rest_wrapper
-    
+    def rest(self) -> Any:
+        """Access wrapped REST client"""
+        return self._client.rest
+
     @property
-    def wss(self) -> PostOnlyWebSocketWrapper:
-        """
-        Get the POST-ONLY wrapped WebSocket client.
-        
-        Returns:
-            Wrapped WebSocket client with POST_ONLY enforcement
-        """
-        return self._wss_wrapper
-    
+    def wss(self) -> Any:
+        """Access wrapped WebSocket client"""
+        return self._client.wss
+
     def submit_limit_order(
-        self,
-        symbol: str,
-        amount: float,
-        price: float,
-        order_type: str = "EXCHANGE LIMIT",
-        **kwargs
-    ) -> Notification[Order]:
-        """
-        Submit a limit order with POST_ONLY enforcement.
-        
-        This is a convenience method that ensures the order is a limit order
-        and has the POST_ONLY flag set.
-        
-        Args:
-            symbol: Trading pair symbol (e.g., "tBTCUSD")
-            amount: Order amount (positive for buy, negative for sell)
-            price: Limit price
-            order_type: Order type (defaults to "EXCHANGE LIMIT")
-            **kwargs: Additional order parameters
-            
-        Returns:
-            Notification containing the order result
-            
-        Raises:
-            PostOnlyViolationError: If the order cannot be made POST_ONLY
-        """
-        # Prepare order parameters
-        order_params = {
-            'type': order_type,
-            'symbol': symbol,
-            'amount': amount,
-            'price': price,
-            **kwargs
-        }
-        
-        # Submit via REST client
-        return self.rest.auth.submit_order(**order_params)
-    
+        self, symbol: str, amount: float, price: float, **kwargs: Any
+    ) -> Any:
+        """Submit limit order. Validates POST_ONLY flag is present"""
+        # Validate inputs
+        if not isinstance(symbol, str) or not symbol.strip():
+            raise PostOnlyError("Symbol must be a non-empty string")
+        if not isinstance(amount, int | float) or amount == 0:
+            raise PostOnlyError("Amount must be a non-zero number")
+        if not isinstance(price, int | float) or price <= 0:
+            raise PostOnlyError("Price must be a positive number")
+
+        return self.rest.auth.submit_order(
+            type="EXCHANGE LIMIT", symbol=symbol, amount=amount, price=price, **kwargs
+        )
+
     async def submit_limit_order_async(
-        self,
-        symbol: str,
-        amount: float,
-        price: float,
-        order_type: str = "EXCHANGE LIMIT",
-        **kwargs
-    ) -> None:
-        """
-        Submit a limit order asynchronously with POST_ONLY enforcement.
-        
-        Args:
-            symbol: Trading pair symbol (e.g., "tBTCUSD")
-            amount: Order amount (positive for buy, negative for sell)
-            price: Limit price
-            order_type: Order type (defaults to "EXCHANGE LIMIT")
-            **kwargs: Additional order parameters
-            
-        Raises:
-            PostOnlyViolationError: If the order cannot be made POST_ONLY
-        """
-        # Prepare order parameters
-        order_params = {
-            'type': order_type,
-            'symbol': symbol,
-            'amount': amount,
-            'price': price,
-            **kwargs
-        }
-        
-        # Submit via WebSocket client
-        await self.wss.inputs.submit_order(**order_params)
-    
-    def get_client_info(self) -> Dict[str, Any]:
-        """
-        Get information about the client configuration.
-        
-        Returns:
-            Dictionary containing client configuration info
-        """
-        return {
-            'api_key_set': bool(self._api_key),
-            'rest_host': self._rest_host,
-            'wss_host': self._wss_host,
-            'post_only_enforced': True,
-            'wrapper_version': '1.0.0'
-        }
-    
+        self, symbol: str, amount: float, price: float, **kwargs: Any
+    ) -> Any:
+        """Submit limit order via WebSocket. Validates POST_ONLY flag is present"""
+        if not self._wss_available:
+            raise AttributeError("WebSocket submit_order not available")
+
+        # Validate inputs
+        if not isinstance(symbol, str) or not symbol.strip():
+            raise PostOnlyError("Symbol must be a non-empty string")
+        if not isinstance(amount, int | float) or amount == 0:
+            raise PostOnlyError("Amount must be a non-zero number")
+        if not isinstance(price, int | float) or price <= 0:
+            raise PostOnlyError("Price must be a positive number")
+
+        return await self.wss.inputs.submit_order(
+            type="EXCHANGE LIMIT", symbol=symbol, amount=amount, price=price, **kwargs
+        )
+
     def __getattr__(self, name: str) -> Any:
-        """
-        Delegate other attributes to the underlying client.
-        
-        Args:
-            name: Attribute name
-            
-        Returns:
-            The requested attribute from the underlying client
-        """
         return getattr(self._client, name)
