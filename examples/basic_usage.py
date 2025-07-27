@@ -12,7 +12,7 @@ client = PostOnlyClient(
 )
 
 try:
-    # Submit limit order with POST_ONLY flag
+    # Method 1: Direct API call (requires explicit POST_ONLY flag)
     order = client.rest.auth.submit_order(
         type="EXCHANGE LIMIT",
         symbol="tBTCUSD",
@@ -20,6 +20,14 @@ try:
         price=30000.0,
         flags=4096  # POST_ONLY flag required
     )
+    print(f"Order submitted: {order}")
+
+except PostOnlyError as e:
+    print(f"Order rejected: {e}")
+
+try:
+    # Method 2: Convenience method (automatically adds POST_ONLY flag)
+    order = client.submit_limit_order("tBTCUSD", 0.001, 30000.0)
     print(f"Order submitted: {order}")
 
 except PostOnlyError as e:

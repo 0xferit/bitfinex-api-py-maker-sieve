@@ -65,7 +65,8 @@ class PostOnlyClient:
     def submit_limit_order(
         self, symbol: str, amount: float, price: float, **kwargs
     ):
-        """Submit limit order. Requires flags=4096 (POST_ONLY)"""
+        """Submit limit order. Automatically adds POST_ONLY flag (4096)"""
+        kwargs['flags'] = kwargs.get('flags', 0) | 4096  # Add POST_ONLY flag
         return self.rest.auth.submit_order(
             type="EXCHANGE LIMIT",
             symbol=symbol,
@@ -77,7 +78,12 @@ class PostOnlyClient:
     async def submit_limit_order_async(
         self, symbol: str, amount: float, price: float, **kwargs
     ):
-        """Submit limit order via WebSocket. Requires flags=4096 (POST_ONLY)"""
+        """Submit limit order via WebSocket. Automatically adds POST_ONLY flag (4096)"""
+        if not (hasattr(self._client.wss, 'inputs') and 
+                hasattr(self._client.wss.inputs, 'submit_order')):
+            raise AttributeError("WebSocket submit_order not available")
+        
+        kwargs['flags'] = kwargs.get('flags', 0) | 4096  # Add POST_ONLY flag
         return await self.wss.inputs.submit_order(
             type="EXCHANGE LIMIT",
             symbol=symbol,

@@ -13,7 +13,7 @@ from bfx_postonly import PostOnlyClient, PostOnlyError
 
 client = PostOnlyClient(api_key="...", api_secret="...")
 
-# Valid: has POST_ONLY flag (4096)
+# Method 1: Direct API (requires explicit flags=4096)
 client.rest.auth.submit_order(
     type="EXCHANGE LIMIT", 
     symbol="tBTCUSD", 
@@ -21,6 +21,9 @@ client.rest.auth.submit_order(
     price=30000.0,
     flags=4096
 )
+
+# Method 2: Convenience method (auto-adds POST_ONLY flag)
+client.submit_limit_order("tBTCUSD", 0.001, 30000.0)
 
 # Invalid: raises PostOnlyError
 client.rest.auth.submit_order(type="EXCHANGE MARKET", symbol="tBTCUSD", amount=0.001)
@@ -30,9 +33,10 @@ client.rest.auth.submit_order(type="EXCHANGE MARKET", symbol="tBTCUSD", amount=0
 
 Wraps bitfinex-api-py and validates orders before transmission:
 - Requires `EXCHANGE LIMIT` type
-- Requires `flags=4096` (POST_ONLY)
+- Requires `flags=4096` (POST_ONLY) for direct API calls
+- Convenience methods automatically add POST_ONLY flag
 - Blocks market orders
 
-**No modification** - orders pass through untouched if valid.
+**Validation-only** - orders pass through untouched if valid.
 
 **Python 3.13+ required**
