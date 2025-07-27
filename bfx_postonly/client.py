@@ -4,7 +4,7 @@ Validates orders but never modifies them.
 """
 
 import logging
-from typing import Any, Callable, Optional
+from typing import Any
 from bfxapi import Client as BfxClient
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ def validate_post_only(**kwargs: Any) -> None:
     order_type = kwargs.get('type')
     if not isinstance(order_type, str):
         raise PostOnlyError("Order type must be a string")
-    
+
     order_type = order_type.upper()
 
     # Only allow limit orders
@@ -32,10 +32,10 @@ def validate_post_only(**kwargs: Any) -> None:
     flags = kwargs.get('flags', 0)
     if flags is None:
         raise PostOnlyError("Flags cannot be None")
-    
+
     if not isinstance(flags, int):
         raise PostOnlyError(f"Flags must be an integer, got: {type(flags)}")
-    
+
     if not (flags & 4096):
         raise PostOnlyError("POST_ONLY flag (4096) required but not set")
 
@@ -52,7 +52,7 @@ class PostOnlyClient:
                 self._client.rest.auth, 'submit_order'
             ):
                 raise AttributeError("REST submit_order method not found")
-            
+
             original_submit = self._client.rest.auth.submit_order
 
             def rest_submit(**params: Any) -> Any:
@@ -61,7 +61,7 @@ class PostOnlyClient:
 
             self._client.rest.auth.submit_order = rest_submit
             logger.info("Successfully wrapped REST submit_order method")
-            
+
         except Exception as e:
             logger.error(f"Failed to wrap REST submit_order: {e}")
             raise PostOnlyError(f"Failed to initialize REST wrapper: {e}")
@@ -69,10 +69,10 @@ class PostOnlyClient:
         # Safely wrap WebSocket submit_order with validation if available
         self._wss_available = False
         try:
-            if (hasattr(self._client, 'wss') and 
-                hasattr(self._client.wss, 'inputs') and 
-                hasattr(self._client.wss.inputs, 'submit_order')):
-                
+            if (hasattr(self._client, 'wss') and
+                hasattr(self._client.wss, 'inputs') and
+                    hasattr(self._client.wss.inputs, 'submit_order')):
+
                 original_wss_submit = self._client.wss.inputs.submit_order
 
                 async def wss_submit(**params: Any) -> Any:
@@ -84,7 +84,7 @@ class PostOnlyClient:
                 logger.info("Successfully wrapped WebSocket submit_order method")
             else:
                 logger.warning("WebSocket submit_order method not available")
-                
+
         except Exception as e:
             logger.warning(f"Failed to wrap WebSocket submit_order: {e}")
             # Don't raise error for WebSocket - it's optional
@@ -93,15 +93,15 @@ class PostOnlyClient:
     def rest(self) -> Any:
         return self._client.rest
 
-    @property 
+    @property
     def wss(self) -> Any:
         return self._client.wss
 
     def submit_limit_order(
-        self, 
-        symbol: str, 
-        amount: float, 
-        price: float, 
+        self,
+        symbol: str,
+        amount: float,
+        price: float,
         **kwargs: Any
     ) -> Any:
         """Submit limit order. Automatically adds POST_ONLY flag (4096)"""
@@ -112,7 +112,7 @@ class PostOnlyClient:
             raise PostOnlyError("Amount must be a non-zero number")
         if not isinstance(price, (int, float)) or price <= 0:
             raise PostOnlyError("Price must be a positive number")
-            
+
         kwargs['flags'] = kwargs.get('flags', 0) | 4096  # Add POST_ONLY flag
         return self.rest.auth.submit_order(
             type="EXCHANGE LIMIT",
@@ -123,16 +123,16 @@ class PostOnlyClient:
         )
 
     async def submit_limit_order_async(
-        self, 
-        symbol: str, 
-        amount: float, 
-        price: float, 
+        self,
+        symbol: str,
+        amount: float,
+        price: float,
         **kwargs: Any
     ) -> Any:
         """Submit limit order via WebSocket. Automatically adds POST_ONLY flag (4096)"""
         if not self._wss_available:
             raise AttributeError("WebSocket submit_order not available")
-        
+
         # Validate inputs
         if not isinstance(symbol, str) or not symbol.strip():
             raise PostOnlyError("Symbol must be a non-empty string")
@@ -140,7 +140,7 @@ class PostOnlyClient:
             raise PostOnlyError("Amount must be a non-zero number")
         if not isinstance(price, (int, float)) or price <= 0:
             raise PostOnlyError("Price must be a positive number")
-            
+
         kwargs['flags'] = kwargs.get('flags', 0) | 4096  # Add POST_ONLY flag
         return await self.wss.inputs.submit_order(
             type="EXCHANGE LIMIT",
