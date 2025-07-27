@@ -41,7 +41,9 @@ class PostOnlyClient:
     Validates orders but never modifies them.
     """
 
-    def __init__(self, api_key: str = "", api_secret: str = "", **kwargs: Any):
+    def __init__(
+        self, api_key: str | None = None, api_secret: str | None = None, **kwargs: Any
+    ):
         """Initialize with POST_ONLY validation wrapper"""
         self._client = BfxClient(api_key=api_key, api_secret=api_secret, **kwargs)
 

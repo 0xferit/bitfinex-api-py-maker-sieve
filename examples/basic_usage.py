@@ -8,7 +8,7 @@ from bfx_postonly import PostOnlyClient, PostOnlyError
 
 # Initialize client
 client = PostOnlyClient(
-    api_key=os.getenv("BFX_API_KEY", ""), api_secret=os.getenv("BFX_API_SECRET", "")
+    api_key=os.getenv("BFX_API_KEY"), api_secret=os.getenv("BFX_API_SECRET")
 )
 
 # Method 1: Direct API calls (must include flags=4096)
