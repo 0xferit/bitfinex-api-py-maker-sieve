@@ -7,8 +7,7 @@ from bfx_postonly import PostOnlyClient, PostOnlyError
 
 # Initialize client
 client = PostOnlyClient(
-    api_key=os.getenv("BFX_API_KEY"),
-    api_secret=os.getenv("BFX_API_SECRET")
+    api_key=os.getenv("BFX_API_KEY"), api_secret=os.getenv("BFX_API_SECRET")
 )
 
 try:
@@ -18,7 +17,7 @@ try:
         symbol="tBTCUSD",
         amount=0.001,
         price=30000.0,
-        flags=4096  # POST_ONLY flag required
+        flags=4096,  # POST_ONLY flag required
     )
     print(f"Order submitted: {order}")
 

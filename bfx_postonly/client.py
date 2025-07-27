@@ -12,24 +12,25 @@ logger = logging.getLogger(__name__)
 
 class PostOnlyError(Exception):
     """Raised when orders don't meet POST_ONLY requirements"""
+
     pass
 
 
 def validate_post_only(**kwargs: Any) -> None:
     """Validate order has POST_ONLY flag (4096) and is EXCHANGE LIMIT type"""
     # Input validation
-    order_type = kwargs.get('type')
+    order_type = kwargs.get("type")
     if not isinstance(order_type, str):
         raise PostOnlyError("Order type must be a string")
 
     order_type = order_type.upper()
 
     # Only allow limit orders
-    if 'LIMIT' not in order_type or 'MARKET' in order_type:
+    if "LIMIT" not in order_type or "MARKET" in order_type:
         raise PostOnlyError(f"Only limit orders allowed, got: {order_type}")
 
     # Require POST_ONLY flag (4096) to be set
-    flags = kwargs.get('flags', 0)
+    flags = kwargs.get("flags", 0)
     if flags is None:
         raise PostOnlyError("Flags cannot be None")
 
@@ -48,8 +49,8 @@ class PostOnlyClient:
 
         # Safely wrap REST submit_order with validation
         try:
-            if not hasattr(self._client.rest, 'auth') or not hasattr(
-                self._client.rest.auth, 'submit_order'
+            if not hasattr(self._client.rest, "auth") or not hasattr(
+                self._client.rest.auth, "submit_order"
             ):
                 raise AttributeError("REST submit_order method not found")
 
@@ -70,9 +71,9 @@ class PostOnlyClient:
         self._wss_available = False
         try:
             if (
-                hasattr(self._client, 'wss')
-                and hasattr(self._client.wss, 'inputs')
-                and hasattr(self._client.wss.inputs, 'submit_order')
+                hasattr(self._client, "wss")
+                and hasattr(self._client.wss, "inputs")
+                and hasattr(self._client.wss.inputs, "submit_order")
             ):
 
                 original_wss_submit = self._client.wss.inputs.submit_order
@@ -100,11 +101,7 @@ class PostOnlyClient:
         return self._client.wss
 
     def submit_limit_order(
-        self,
-        symbol: str,
-        amount: float,
-        price: float,
-        **kwargs: Any
+        self, symbol: str, amount: float, price: float, **kwargs: Any
     ) -> Any:
         """Submit limit order. Automatically adds POST_ONLY flag (4096)"""
         # Validate inputs
@@ -115,21 +112,13 @@ class PostOnlyClient:
         if not isinstance(price, (int, float)) or price <= 0:
             raise PostOnlyError("Price must be a positive number")
 
-        kwargs['flags'] = kwargs.get('flags', 0) | 4096  # Add POST_ONLY flag
+        kwargs["flags"] = kwargs.get("flags", 0) | 4096  # Add POST_ONLY flag
         return self.rest.auth.submit_order(
-            type="EXCHANGE LIMIT",
-            symbol=symbol,
-            amount=amount,
-            price=price,
-            **kwargs
+            type="EXCHANGE LIMIT", symbol=symbol, amount=amount, price=price, **kwargs
         )
 
     async def submit_limit_order_async(
-        self,
-        symbol: str,
-        amount: float,
-        price: float,
-        **kwargs: Any
+        self, symbol: str, amount: float, price: float, **kwargs: Any
     ) -> Any:
         """Submit limit order via WebSocket. Automatically adds POST_ONLY flag (4096)"""
         if not self._wss_available:
@@ -143,13 +132,9 @@ class PostOnlyClient:
         if not isinstance(price, (int, float)) or price <= 0:
             raise PostOnlyError("Price must be a positive number")
 
-        kwargs['flags'] = kwargs.get('flags', 0) | 4096  # Add POST_ONLY flag
+        kwargs["flags"] = kwargs.get("flags", 0) | 4096  # Add POST_ONLY flag
         return await self.wss.inputs.submit_order(
-            type="EXCHANGE LIMIT",
-            symbol=symbol,
-            amount=amount,
-            price=price,
-            **kwargs
+            type="EXCHANGE LIMIT", symbol=symbol, amount=amount, price=price, **kwargs
         )
 
     def __getattr__(self, name: str) -> Any:
