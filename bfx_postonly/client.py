@@ -57,11 +57,11 @@ class PostOnlyClient:
 
             original_submit = self._client.rest.auth.submit_order
 
-            def rest_submit(**params: Any) -> Any:
-                validate_post_only(**params)
-                return original_submit(**params)
+            def rest_submit(*args: Any, **kwargs: Any) -> Any:
+                validate_post_only(**kwargs)
+                return original_submit(*args, **kwargs)
 
-            self._client.rest.auth.submit_order = rest_submit  # type: ignore[method-assign,assignment]
+            self._client.rest.auth.submit_order = rest_submit
             logger.info("Successfully wrapped REST submit_order method")
 
         except Exception as e:
@@ -78,11 +78,11 @@ class PostOnlyClient:
             ):
                 original_wss_submit = self._client.wss.inputs.submit_order
 
-                async def wss_submit(**params: Any) -> Any:
-                    validate_post_only(**params)
-                    return await original_wss_submit(**params)
+                async def wss_submit(*args: Any, **kwargs: Any) -> Any:
+                    validate_post_only(**kwargs)
+                    return await original_wss_submit(*args, **kwargs)
 
-                self._client.wss.inputs.submit_order = wss_submit  # type: ignore[method-assign,assignment]
+                self._client.wss.inputs.submit_order = wss_submit
                 self._wss_available = True
                 logger.info("Successfully wrapped WebSocket submit_order method")
             else:
