@@ -53,7 +53,7 @@ class PostOnlyClient:
                 return await original_wss_submit(**params)
 
             self._client.wss.inputs.submit_order = wss_submit
-    
+
     @property
     def rest(self):
         return self._client.rest
