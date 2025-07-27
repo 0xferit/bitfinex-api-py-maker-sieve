@@ -3,6 +3,7 @@ Basic usage example for POST-ONLY wrapper
 """
 
 import os
+
 from bfx_postonly import PostOnlyClient, PostOnlyError
 
 # Initialize client

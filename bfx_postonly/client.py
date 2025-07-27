@@ -5,6 +5,7 @@ Validates orders but never modifies them.
 
 import logging
 from typing import Any
+
 from bfxapi import Client as BfxClient
 
 logger = logging.getLogger(__name__)
