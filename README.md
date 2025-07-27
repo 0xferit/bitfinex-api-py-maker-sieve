@@ -30,7 +30,7 @@ pip install -e .[dev]
 
 This library depends on:
 - [bitfinex-api-py (heartbeat branch)](https://github.com/0xferit/bitfinex-api-py/releases/tag/heartbeat)
-- Python 3.8+
+- Python 3.12+
 
 ## 🏃‍♂️ Quick Start
 

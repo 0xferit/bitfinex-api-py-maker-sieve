@@ -6,7 +6,7 @@ Thank you for your interest in contributing! This document provides guidelines f
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.12 or higher
 - Git
 - A Bitfinex account with API access (for testing)
 

@@ -52,6 +52,14 @@ def validate_functionality():
     """Validate core functionality without API calls"""
     print("\n🧪 Validating functionality...")
     
+    # Check Python version
+    import sys
+    if sys.version_info < (3, 12):
+        print(f"❌ Python 3.12+ required, but running {sys.version}")
+        return False
+    else:
+        print(f"✅ Python version check passed ({sys.version.split()[0]})")
+    
     try:
         from bfx_postonly.utils import is_limit_order, has_post_only_flag, add_post_only_flag, combine_flags
         from bfx_postonly.decorators import _validate_and_modify_order_params
