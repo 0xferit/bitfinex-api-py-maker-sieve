@@ -66,7 +66,7 @@ class PostOnlyClient:
 
         except Exception as e:
             logger.error(f"Failed to wrap REST submit_order: {e}")
-            raise PostOnlyError(f"Failed to initialize REST wrapper: {e}")
+            raise PostOnlyError(f"Failed to initialize REST wrapper: {e}") from e
 
         # Safely wrap WebSocket submit_order with validation if available
         self._wss_available = False
@@ -76,7 +76,6 @@ class PostOnlyClient:
                 and hasattr(self._client.wss, "inputs")
                 and hasattr(self._client.wss.inputs, "submit_order")
             ):
-
                 original_wss_submit = self._client.wss.inputs.submit_order
 
                 async def wss_submit(**params: Any) -> Any:
@@ -108,9 +107,9 @@ class PostOnlyClient:
         # Validate inputs
         if not isinstance(symbol, str) or not symbol.strip():
             raise PostOnlyError("Symbol must be a non-empty string")
-        if not isinstance(amount, (int, float)) or amount == 0:
+        if not isinstance(amount, int | float) or amount == 0:
             raise PostOnlyError("Amount must be a non-zero number")
-        if not isinstance(price, (int, float)) or price <= 0:
+        if not isinstance(price, int | float) or price <= 0:
             raise PostOnlyError("Price must be a positive number")
 
         kwargs["flags"] = kwargs.get("flags", 0) | 4096  # Add POST_ONLY flag
@@ -128,9 +127,9 @@ class PostOnlyClient:
         # Validate inputs
         if not isinstance(symbol, str) or not symbol.strip():
             raise PostOnlyError("Symbol must be a non-empty string")
-        if not isinstance(amount, (int, float)) or amount == 0:
+        if not isinstance(amount, int | float) or amount == 0:
             raise PostOnlyError("Amount must be a non-zero number")
-        if not isinstance(price, (int, float)) or price <= 0:
+        if not isinstance(price, int | float) or price <= 0:
             raise PostOnlyError("Price must be a positive number")
 
         kwargs["flags"] = kwargs.get("flags", 0) | 4096  # Add POST_ONLY flag
