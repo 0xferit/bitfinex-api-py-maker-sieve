@@ -4,15 +4,12 @@ A lean validation wrapper for bitfinex-api-py that enforces POST_ONLY flag on al
 
 ## Installation
 
-This package requires the `bitfinex-api-py` library to be installed first:
-
 ```bash
-# Install the required dependency
-pip install git+https://github.com/0xferit/bitfinex-api-py.git@heartbeat
-
-# Install this wrapper package  
+# Install this package (includes required bitfinex-api-py dependency)
 pip install bitfinex-api-py-postonly-wrapper
 ```
+
+The required `bitfinex-api-py` dependency will be automatically installed from the git repository.
 
 ## Usage
 

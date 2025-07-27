@@ -22,10 +22,9 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 requires-python = ">=3.13"
-dependencies = []
-
-# Note: bitfinex-api-py must be installed separately:
-# pip install git+https://github.com/0xferit/bitfinex-api-py.git@heartbeat
+dependencies = [
+    "bitfinex-api-py @ git+https://github.com/0xferit/bitfinex-api-py.git@heartbeat"
+]
 
 [project.optional-dependencies]
 dev = [
