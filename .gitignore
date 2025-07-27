@@ -1,7 +1,17 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[codz]
+*.py[cod]
 *$py.class
+
+# API Keys and secrets
+.env
+*.env
+api_keys.txt
+secrets/
+
+# Logs
+*.log
+logs/
 
 # C extensions
 *.so
