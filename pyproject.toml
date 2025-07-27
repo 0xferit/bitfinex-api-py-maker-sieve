@@ -12,16 +12,17 @@ authors = [
     {name = "0xferit", email = "ferit@cryptolab.net"}
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Office/Business :: Financial :: Investment",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     "bitfinex-api-py @ git+https://github.com/0xferit/bitfinex-api-py.git@heartbeat"
 ]
@@ -46,7 +47,7 @@ include = ["bfx_postonly*"]
 
 [tool.black]
 line-length = 88
-target-version = ['py312']
+target-version = ['py313']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -69,7 +70,7 @@ line_length = 88
 known_first_party = ["bfx_postonly"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.13"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -83,9 +84,6 @@ warn_unreachable = true
 strict_equality = true
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
 python_files = ["test_*.py"]
-python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
-asyncio_mode = "auto"
