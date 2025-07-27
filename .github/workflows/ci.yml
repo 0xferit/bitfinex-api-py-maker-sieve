@@ -24,6 +24,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install git+https://github.com/0xferit/bitfinex-api-py.git@heartbeat
         pip install -e .[dev]
     
     - name: Lint and format check with ruff

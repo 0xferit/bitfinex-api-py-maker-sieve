@@ -1,1 +1,0 @@
-bitfinex-api-py @ git+https://github.com/0xferit/bitfinex-api-py.git@heartbeat
