@@ -57,7 +57,9 @@ select = [
     "C4", # flake8-comprehensions
     "UP", # pyupgrade
 ]
-ignore = []
+ignore = [
+    "B010",  # Allow setattr for dynamic method assignment
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["bfx_postonly"]

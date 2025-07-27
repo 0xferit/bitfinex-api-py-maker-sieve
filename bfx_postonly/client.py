@@ -61,7 +61,8 @@ class PostOnlyClient:
                 validate_post_only(**kwargs)
                 return original_submit(*args, **kwargs)
 
-            self._client.rest.auth.submit_order = rest_submit
+            # Use setattr to avoid mypy method assignment error
+            setattr(self._client.rest.auth, "submit_order", rest_submit)
             logger.info("Successfully wrapped REST submit_order method")
 
         except Exception as e:
@@ -82,7 +83,8 @@ class PostOnlyClient:
                     validate_post_only(**kwargs)
                     return await original_wss_submit(*args, **kwargs)
 
-                self._client.wss.inputs.submit_order = wss_submit
+                # Use setattr to avoid mypy method assignment error
+                setattr(self._client.wss.inputs, "submit_order", wss_submit)
                 self._wss_available = True
                 logger.info("Successfully wrapped WebSocket submit_order method")
             else:
@@ -112,7 +114,6 @@ class PostOnlyClient:
         if not isinstance(price, int | float) or price <= 0:
             raise PostOnlyError("Price must be a positive number")
 
-        kwargs["flags"] = kwargs.get("flags", 0) | 4096  # Add POST_ONLY flag
         return self.rest.auth.submit_order(
             type="EXCHANGE LIMIT", symbol=symbol, amount=amount, price=price, **kwargs
         )
@@ -132,7 +133,6 @@ class PostOnlyClient:
         if not isinstance(price, int | float) or price <= 0:
             raise PostOnlyError("Price must be a positive number")
 
-        kwargs["flags"] = kwargs.get("flags", 0) | 4096  # Add POST_ONLY flag
         return await self.wss.inputs.submit_order(
             type="EXCHANGE LIMIT", symbol=symbol, amount=amount, price=price, **kwargs
         )
