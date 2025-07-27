@@ -24,7 +24,7 @@ classifiers = [
 ]
 requires-python = ">=3.13"
 dependencies = [
-    "bitfinex-api-py @ git+https://github.com/0xferit/bitfinex-api-py.git@7f5a8b2c3d1e4f5a6b7c8d9e0f1a2b3c4d5e6f7a"
+    "bitfinex-api-py @ git+https://github.com/0xferit/bitfinex-api-py.git@heartbeat"
 ]
 
 [project.optional-dependencies]

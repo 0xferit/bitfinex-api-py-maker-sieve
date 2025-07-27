@@ -15,6 +15,15 @@ The pre-commit hook runs the following checks in order:
 
 ## Installation
 
+### Prerequisites
+
+First, set up your development environment:
+
+```bash
+# Set up virtual environment and install dependencies
+./scripts/setup-dev.sh
+```
+
 ### Option 1: Using the Setup Script (Recommended)
 
 ```bash

@@ -40,3 +40,29 @@ Wraps bitfinex-api-py and validates orders before transmission:
 **Validation-only** - orders pass through untouched if valid.
 
 **Python 3.13+ required**
+
+## Development
+
+### Pre-commit Hook
+
+This project includes a pre-commit hook that runs the same checks as the CI pipeline locally. This helps catch issues early and saves time by preventing failed CI runs.
+
+To set up the development environment and install the pre-commit hook:
+
+```bash
+# Set up virtual environment and install dependencies
+./scripts/setup-dev.sh
+
+# Install the pre-commit hook
+./scripts/setup-precommit.sh
+```
+
+The hook will automatically run:
+- flake8 linting
+- black code formatting
+- isort import sorting  
+- mypy type checking
+- pytest tests with coverage
+- security checks (safety, bandit)
+
+For detailed documentation, see [docs/PRE-COMMIT.md](docs/PRE-COMMIT.md).

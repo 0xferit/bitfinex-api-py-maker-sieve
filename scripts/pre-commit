@@ -44,18 +44,19 @@ if ! command -v pip &> /dev/null; then
     exit 1
 fi
 
-# Install dev dependencies if not already installed
-echo "📦 Checking/installing development dependencies..."
-pip install -e ".[dev]" > /dev/null 2>&1 || {
-    print_error "Failed to install development dependencies"
+# Check if dev dependencies are available
+echo "📦 Checking development dependencies..."
+if ! command -v flake8 &> /dev/null || ! command -v black &> /dev/null || ! command -v isort &> /dev/null || ! command -v mypy &> /dev/null || ! command -v pytest &> /dev/null; then
+    print_warning "Some development dependencies are missing"
+    print_warning "Please install them manually: pip install -e '.[dev]'"
+    print_warning "Or use a virtual environment: python -m venv venv && source venv/bin/activate && pip install -e '.[dev]'"
     exit 1
-}
+fi
 
-# Install additional security tools
-echo "🔒 Installing security tools..."
-pip install safety bandit > /dev/null 2>&1 || {
-    print_warning "Failed to install security tools (safety, bandit)"
-}
+# Check for security tools (optional)
+if ! command -v safety &> /dev/null || ! command -v bandit &> /dev/null; then
+    print_warning "Security tools (safety, bandit) not found - security checks will be skipped"
+fi
 
 print_status "Dependencies ready"
 
