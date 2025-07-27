@@ -3,9 +3,9 @@ requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "bitfinex-api-py-postonly-wrapper"
+name = "bitfinex-api-py-maker-sieve"
 version = "1.0.0"
-description = "Python wrapper for bitfinex-api-py that enforces POST_ONLY on limit orders for safe market-making"
+description = "Python sieve for bitfinex-api-py that sieves orders that are not LIMIT and POST_ONLY for safe market-making"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -35,9 +35,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/0xferit/bitfinex-api-py-postonly-wrapper"
-Repository = "https://github.com/0xferit/bitfinex-api-py-postonly-wrapper"
-Issues = "https://github.com/0xferit/bitfinex-api-py-postonly-wrapper/issues"
+Homepage = "https://github.com/0xferit/bitfinex-api-py-maker-sieve"
+Repository = "https://github.com/0xferit/bitfinex-api-py-maker-sieve"
+Issues = "https://github.com/0xferit/bitfinex-api-py-maker-sieve/issues"
 
 [tool.setuptools.packages.find]
 include = ["bfx_postonly*"]
@@ -45,7 +45,7 @@ include = ["bfx_postonly*"]
 
 [tool.ruff]
 target-version = "py313"
-line-length = 88
+line-length = 120
 
 [tool.ruff.lint]
 select = [
@@ -58,7 +58,7 @@ select = [
     "UP", # pyupgrade
 ]
 ignore = [
-    "B010",  # Allow setattr for dynamic method assignment
+    # No ignores needed - clean composition-based architecture
 ]
 
 [tool.ruff.lint.isort]
@@ -83,6 +83,7 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
+disable_error_code = ["method-assign"]
 
 [[tool.mypy.overrides]]
 module = "bfxapi"

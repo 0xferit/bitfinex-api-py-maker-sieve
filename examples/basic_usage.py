@@ -5,9 +5,7 @@ import os
 from bfx_postonly import PostOnlyClient, PostOnlyError
 
 # Initialize client
-client = PostOnlyClient(
-    api_key=os.getenv("BFX_API_KEY"), api_secret=os.getenv("BFX_API_SECRET")
-)
+client = PostOnlyClient(api_key=os.getenv("BFX_API_PAPER_KEY"), api_secret=os.getenv("BFX_API_PAPER_SECRET"))
 
 # Example 1: Valid limit order with POST_ONLY flag
 try:
@@ -84,10 +82,7 @@ except PostOnlyError as e:
     print(f"❌ Error: {e}")
 
 print("\n📋 Summary:")
-print(
-    "- Only LIMIT orders are permitted (LIMIT, EXCHANGE LIMIT, STOP LIMIT, "
-    "EXCHANGE STOP LIMIT)"
-)
+print("- Only LIMIT orders are permitted (LIMIT, EXCHANGE LIMIT, STOP LIMIT, EXCHANGE STOP LIMIT)")
 print("- All limit orders MUST have POST_ONLY flag (4096)")
 print("- MARKET, STOP, FOK, IOC orders are rejected")
 print("- The wrapper acts as a surgical sieve for POST_ONLY limit orders only")
