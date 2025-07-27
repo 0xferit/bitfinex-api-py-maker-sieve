@@ -16,3 +16,10 @@
 - Use simple validation wrapper approach
 - Avoid complex decorator patterns or "contribution theater"
 - Focus on the core requirement: enforce POST_ONLY behavior through validation
+
+## Development Environment
+- Python 3.13+ required
+- Use virtual environment: `source venv/bin/activate`
+- Run tests locally before committing: `pytest tests/`
+- Unified linting with ruff (replaces black, isort, flake8)
+- Type checking with mypy 1.17.0+
