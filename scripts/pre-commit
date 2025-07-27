@@ -1,0 +1,135 @@
+#!/bin/bash
+
+# Pre-commit hook for bitfinex-api-py-postonly-wrapper
+# Runs the same checks as CI pipeline locally
+
+set -e  # Exit on any error
+
+echo "🔍 Running pre-commit checks..."
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Function to print colored output
+print_status() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}❌ $1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
+}
+
+# Check if we're in a git repository
+if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    print_error "Not in a git repository"
+    exit 1
+fi
+
+# Check if Python is available
+if ! command -v python &> /dev/null; then
+    print_error "Python is not installed or not in PATH"
+    exit 1
+fi
+
+# Check if pip is available
+if ! command -v pip &> /dev/null; then
+    print_error "pip is not installed or not in PATH"
+    exit 1
+fi
+
+# Install dev dependencies if not already installed
+echo "📦 Checking/installing development dependencies..."
+pip install -e ".[dev]" > /dev/null 2>&1 || {
+    print_error "Failed to install development dependencies"
+    exit 1
+}
+
+# Install additional security tools
+echo "🔒 Installing security tools..."
+pip install safety bandit > /dev/null 2>&1 || {
+    print_warning "Failed to install security tools (safety, bandit)"
+}
+
+print_status "Dependencies ready"
+
+# 1. Lint with flake8
+echo "🔍 Running flake8 linting..."
+if flake8 bfx_postonly/ examples/; then
+    print_status "flake8 passed"
+else
+    print_error "flake8 failed - please fix linting issues"
+    exit 1
+fi
+
+# 2. Format check with black
+echo "🎨 Checking code formatting with black..."
+if black --check bfx_postonly/ examples/; then
+    print_status "black formatting check passed"
+else
+    print_error "black formatting check failed - please run 'black bfx_postonly/ examples/' to fix"
+    exit 1
+fi
+
+# 3. Import sorting check with isort
+echo "📋 Checking import sorting with isort..."
+if isort --check-only bfx_postonly/ examples/; then
+    print_status "isort import sorting check passed"
+else
+    print_error "isort import sorting check failed - please run 'isort bfx_postonly/ examples/' to fix"
+    exit 1
+fi
+
+# 4. Type check with mypy
+echo "🔍 Running type checking with mypy..."
+if mypy bfx_postonly/; then
+    print_status "mypy type checking passed"
+else
+    print_error "mypy type checking failed - please fix type issues"
+    exit 1
+fi
+
+# 5. Run tests with pytest
+echo "🧪 Running tests with pytest..."
+if python -m pytest test_postonly.py --cov=bfx_postonly --cov-report=term-missing; then
+    print_status "pytest tests passed"
+else
+    print_error "pytest tests failed - please fix failing tests"
+    exit 1
+fi
+
+# 6. Security checks (optional - don't fail commit if these fail)
+echo "🔒 Running security checks..."
+
+# Safety check
+if command -v safety &> /dev/null; then
+    if safety check; then
+        print_status "safety security check passed"
+    else
+        print_warning "safety security check found issues - review dependencies"
+    fi
+else
+    print_warning "safety not available - skipping security check"
+fi
+
+# Bandit check
+if command -v bandit &> /dev/null; then
+    if bandit -r bfx_postonly/; then
+        print_status "bandit security check passed"
+    else
+        print_warning "bandit security check found issues - review code"
+    fi
+else
+    print_warning "bandit not available - skipping security check"
+fi
+
+echo ""
+print_status "All pre-commit checks passed! 🎉"
+echo "You can now commit your changes."
+exit 0 
