@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.12"]
+        python-version: ["3.13"]
 
     steps:
     - uses: actions/checkout@v4
@@ -28,15 +28,15 @@ jobs:
     
     - name: Lint with flake8
       run: |
-        flake8 bfx_postonly/ tests/ examples/
+        flake8 bfx_postonly/ examples/
     
     - name: Format check with black
       run: |
-        black --check bfx_postonly/ tests/ examples/
+        black --check bfx_postonly/ examples/
     
     - name: Import sorting check with isort
       run: |
-        isort --check-only bfx_postonly/ tests/ examples/
+        isort --check-only bfx_postonly/ examples/
     
     - name: Type check with mypy
       run: |
@@ -44,7 +44,7 @@ jobs:
     
     - name: Test with pytest
       run: |
-        pytest tests/ --cov=bfx_postonly --cov-report=xml
+        pytest test_postonly.py --cov=bfx_postonly --cov-report=xml
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -60,7 +60,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: "3.12"
+        python-version: "3.13"
     
     - name: Install dependencies
       run: |
@@ -86,7 +86,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: "3.12"
+        python-version: "3.13"
     
     - name: Install build dependencies
       run: |
